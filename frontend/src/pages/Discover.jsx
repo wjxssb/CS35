@@ -194,6 +194,9 @@ export default function Discover() {
                 <Link className="btn small secondary" to={`/profile/${user.id}`} data-testid={`view-${user.username}`}>
                   View Profile
                 </Link>
+                <Link className="btn small" to={`/messages/${user.id}`} data-testid={`message-${user.username}`}>
+                  💬 Message
+                </Link>
               </div>
             </div>
           ))}

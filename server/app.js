@@ -12,6 +12,7 @@ import scheduleRoutes from './routes/schedule.routes.js';
 import discoverRoutes from './routes/discover.routes.js';
 import userRoutes from './routes/user.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import messageRoutes from './routes/message.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
@@ -33,6 +34,7 @@ export function createApp() {
   app.use('/api/discover', discoverRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/messages', messageRoutes);
 
   // 404 for unknown API routes.
   app.use('/api', (req, res) => {

@@ -10,6 +10,8 @@ import UserProfile from './pages/UserProfile.jsx';
 import MyCourses from './pages/MyCourses.jsx';
 import ScheduleUpload from './pages/ScheduleUpload.jsx';
 import Discover from './pages/Discover.jsx';
+import Messages from './pages/Messages.jsx';
+import Chat from './pages/Chat.jsx';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -35,6 +37,7 @@ function Nav() {
           <NavLink to="/discover" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>Discover</NavLink>
           <NavLink to="/courses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>My Courses</NavLink>
           <NavLink to="/upload" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>Upload Schedule</NavLink>
+          <NavLink to="/messages" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>Messages</NavLink>
           <NavLink to="/profile" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>Profile</NavLink>
         </div>
         <div className="nav-spacer" />
@@ -62,6 +65,8 @@ export default function App() {
           <Route path="/upload" element={<RequireAuth><ScheduleUpload /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><MyProfile /></RequireAuth>} />
           <Route path="/profile/:id" element={<RequireAuth><UserProfile /></RequireAuth>} />
+          <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
+          <Route path="/messages/:userId" element={<RequireAuth><Chat /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}

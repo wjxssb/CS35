@@ -83,6 +83,22 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
     );
 
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      user_a TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_b TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
     CREATE TABLE IF NOT EXISTS schedule_candidates (
       id TEXT PRIMARY KEY,
       upload_id TEXT NOT NULL REFERENCES schedule_uploads(id) ON DELETE CASCADE,
@@ -102,6 +118,9 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_meetings_course ON meetings(course_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_upload ON schedule_candidates(upload_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_pair ON conversations(user_a, user_b);
+    CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
   `);
 }
 
@@ -141,4 +160,64 @@ export function allUsersWithCourses() {
     // NB: map the id, not the row object — node:sqlite would treat a plain
     // object argument as a named-parameter bag.
     .map((u) => userWithCourses(u.id));
+}
+
+// ---------- messaging ----------
+
+/**
+ * Get or create the 1:1 conversation between two users.
+ * The pair is stored canonically (sorted ids) with a unique index, so both
+ * users always resolve to the same conversation row.
+ */
+export function getOrCreateConversation(userAId, userBId) {
+  const d = getDb();
+  const [a, b] = [userAId, userBId].sort();
+  d.prepare('INSERT INTO conversations (id, user_a, user_b) VALUES (?, ?, ?) ON CONFLICT(user_a, user_b) DO NOTHING').run(config.newId(), a, b);
+  return d.prepare('SELECT * FROM conversations WHERE user_a = ? AND user_b = ?').get(a, b);
+}
+
+/** All messages in a conversation, oldest first. */
+export function conversationMessages(conversationId) {
+  return getDb()
+    .prepare('SELECT id, conversation_id, sender_id, body, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at, rowid')
+    .all(conversationId);
+}
+
+/**
+ * Every conversation one user is part of, newest activity first.
+ * Includes the peer id, message count and the last message summary.
+ */
+export function conversationsForUser(userId) {
+  return getDb()
+    .prepare(
+      `SELECT c.id AS id,
+              CASE WHEN c.user_a = ? THEN c.user_b ELSE c.user_a END AS peer_id,
+              c.created_at AS created_at,
+              (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) AS message_count,
+              (SELECT m.body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at, m.rowid DESC LIMIT 1) AS last_body,
+              (SELECT m.sender_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at, m.rowid DESC LIMIT 1) AS last_sender_id,
+              (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at, m.rowid DESC LIMIT 1) AS last_created_at
+       FROM conversations c
+       WHERE c.user_a = ? OR c.user_b = ?
+       ORDER BY last_created_at DESC`
+    )
+    .all(userId, userId, userId);
+}
+
+/**
+ * Delete the canonical conversation between two users (messages cascade).
+ * Returns true when a conversation row was removed.
+ */
+export function deleteConversationBetween(userAId, userBId) {
+  const [a, b] = [userAId, userBId].sort();
+  const result = getDb().prepare('DELETE FROM conversations WHERE user_a = ? AND user_b = ?').run(a, b);
+  return result.changes > 0;
+}
+
+export function insertMessage(conversationId, senderId, body) {
+  const d = getDb();
+  const id = config.newId();
+  d.prepare('INSERT INTO messages (id, conversation_id, sender_id, body) VALUES (?, ?, ?, ?)').run(id, conversationId, senderId, body);
+  d.prepare("UPDATE conversations SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(conversationId);
+  return d.prepare('SELECT * FROM messages WHERE id = ?').get(id);
 }

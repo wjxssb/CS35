@@ -39,3 +39,28 @@ export function initials(name) {
 
 export const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 export const DAY_OPTIONS = WEEKDAYS.map((d) => ({ value: d, label: DAY_LABELS[d] }));
+
+/** Local wall-clock time ("2:00 PM") for an ISO timestamp — chat bubbles.
+ *  (formatTime() itself is wall-clock only, used for course meeting times.) */
+export function formatLocalTime(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
+  if (Number.isNaN(d.getTime())) return '';
+  return formatTime(`${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`);
+}
+
+/** Compact relative time: "just now", "5m ago", "3h ago", "2d ago", else the date. */
+export function timeAgo(isoString) {
+  if (!isoString) return '';
+  const then = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
+  if (Number.isNaN(then.getTime())) return isoString;
+  const diff = Date.now() - then.getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return then.toLocaleDateString();
+}

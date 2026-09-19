@@ -34,6 +34,11 @@ interface.
   course, instructor, day and time (AND across categories, OR within a
   category). The UI explains *why* people match (shared course chips, counts) —
   no raw scores.
+- **Messages** — 1:1 chat between any two classmates. One canonical
+  conversation per pair (both users see the same thread), message inbox
+  ordered by newest activity, live polling, entry points from Discover
+  match cards and user profiles, and whole-conversation delete (removes
+  every message for both sides).
 - **Dashboard** — real stats from the data layer: how many people share 3+
   courses with you, how many share 2+, total classmates with any overlap.
 - **Seed data** — 10 demo students with a deliberate overlap matrix (0/1/2/3
@@ -80,7 +85,7 @@ Copy `.env.example` to `.env` (or export the variables) to override defaults:
 ## Tests
 
 ```bash
-npm test        # unit + integration (81 tests)
+npm test        # unit + integration (93 tests)
 npm run test:e2e  # Playwright: full 20-step real-user flow in Chromium
 ```
 
@@ -91,7 +96,8 @@ npm run test:e2e  # Playwright: full 20-step real-user flow in Chromium
   port with a throwaway SQLite DB: auth (register/login/invalid/protected),
   course CRUD + ownership + duplicates, discover sort & filter matrix,
   schedule upload → OCR → review → confirm (including duplicate skipping and
-  a real UCLA iCal calendar screenshot).
+  a real UCLA iCal calendar screenshot), 1:1 messaging (send, history, inbox,
+  whole-conversation delete for both sides, auth + validation).
 - **E2E** (`e2e/flow.spec.js`) — boots a fresh seeded server on port 3100 and
   drives a real browser: register, edit profile, upload avatar, add courses
   manually, import a schedule image, review & confirm, second user with a
@@ -115,6 +121,10 @@ npm run test:e2e  # Playwright: full 20-step real-user flow in Chromium
 | `GET /api/discover`          | Ranked matches (`sort`, `course`, `instructor`, `day`, `time`) |
 | `GET /api/users/:id`         | Public profile (no email, ever)             |
 | `GET /api/dashboard`         | Real stats for my dashboard                 |
+| `GET /api/messages`          | My conversations (peer, last message, count)|
+| `POST /api/messages`         | Send a message (`{ to, body }`) — creates the conversation on first use |
+| `GET /api/messages/:userId`  | Full message history with a classmate       |
+| `DELETE /api/messages/:userId` | Delete the whole conversation with a classmate |
 
 ## Project layout
 

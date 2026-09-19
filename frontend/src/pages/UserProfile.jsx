@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { Avatar, Spinner, ErrorBanner, EmptyState } from '../components/ui.jsx';
 import { meetingLabel } from '../util.js';
 
 export default function UserProfile() {
   const { id } = useParams();
+  const { user: me } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,13 @@ export default function UserProfile() {
               {[user.major, user.year].filter(Boolean).join(' · ')}
             </p>
             {user.bio && <p style={{ marginTop: 8 }}>“{user.bio}”</p>}
+            {me && me.id !== user.id && (
+              <div style={{ marginTop: 12 }}>
+                <Link className="btn" to={`/messages/${user.id}`} data-testid="message-user">
+                  💬 Message {user.display_name || user.username}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
