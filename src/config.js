@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // NB: new URL(...).pathname is percent-encoded and would break on non-ASCII
-// project paths (e.g. "桌面"); fileURLToPath decodes it properly.
+// project paths containing Unicode characters; fileURLToPath decodes them properly.
 const DEFAULT_DATA_DIR = fileURLToPath(new URL('../data/', import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || DEFAULT_DATA_DIR;
 
